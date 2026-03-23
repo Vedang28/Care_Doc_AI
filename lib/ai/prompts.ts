@@ -1,7 +1,17 @@
-export function buildSystemPrompt(agencyPromptOverride?: string): string {
+export interface PolicyExtract {
+  preferredTerminology?: {
+    clientTerm?: string
+    medicationTerm?: string
+    carePlanTerm?: string
+  }
+  keyPolicies?: string[]
+  customInstructions?: string
+}
+
+export function buildSystemPrompt(agencyPromptOverride?: string, policyExtract?: PolicyExtract): string {
   if (agencyPromptOverride) return agencyPromptOverride
 
-  return `You are a CQC-compliant care documentation assistant for domiciliary care in England.
+  const base = `You are a CQC-compliant care documentation assistant for domiciliary care in England.
 Your role is to transform caregiver notes into professional, person-centred visit reports.
 
 RULES:
@@ -23,8 +33,28 @@ RESPOND ONLY with a valid JSON object. No markdown fences. No preamble. No expla
 {
   "report": "The full professional report text as a single string with \\n for line breaks",
   "flags": ["Array of flagged concerns. Empty array if none."],
-  "transformations": ["Array describing each informal→formal change made, e.g. 'grabbed → assisted with mobilising'"]
-}`
+  "transformations": ["Array describing each informal→formal change made, e.g. 'grabbed → assisted with mobilising'"],
+  "qualityScore": {
+    "overall": 0,
+    "completeness": 0,
+    "specificity": 0,
+    "riskAwareness": 0,
+    "feedback": "One sentence of constructive feedback for the caregiver"
+  }
+}
+
+After the report, evaluate the quality of the caregiver's original notes:
+- completeness (0-100): Did notes cover care provided, condition changes, incidents, and client response?
+- specificity (0-100): Were notes specific with details, or vague and generic?
+- riskAwareness (0-100): Did notes identify any risks, changes in condition, or safeguarding concerns?
+- overall: weighted average (completeness 40%, specificity 35%, riskAwareness 25%)
+- feedback: One encouraging sentence of constructive feedback for the caregiver`
+
+  if (!policyExtract) return base
+
+  const customisation = `\nAGENCY-SPECIFIC TERMINOLOGY:\n${policyExtract.preferredTerminology?.clientTerm ? `- Refer to clients as "${policyExtract.preferredTerminology.clientTerm}"\n` : ''}${policyExtract.preferredTerminology?.medicationTerm ? `- Refer to medication as "${policyExtract.preferredTerminology.medicationTerm}"\n` : ''}${policyExtract.keyPolicies?.length ? `\nAGENCY POLICY REQUIREMENTS:\n${policyExtract.keyPolicies.map(p => `- ${p}`).join('\n')}\n` : ''}${policyExtract.customInstructions ? `\n${policyExtract.customInstructions}` : ''}`
+
+  return base + customisation
 }
 
 export function buildUserMessage(context: {

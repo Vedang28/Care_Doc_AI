@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { Resend } from 'resend'
 import { DailyDigestEmail } from '@/emails/DailyDigestEmail'
 import React from 'react'
+import type { IncidentSeverity } from '@prisma/client'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -65,6 +66,47 @@ export async function POST(request: NextRequest) {
           date: yesterday,
         }),
       })
+    }
+
+    // Overdue incident reminders
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    tomorrow.setHours(23, 59, 59, 999)
+
+    for (const agency of agencies) {
+      const managerEmails = agency.users.map((u) => u.email)
+      const notifyEmail = agency.settings?.notifyEmail
+      const recipients = notifyEmail ? [notifyEmail] : managerEmails
+      if (recipients.length === 0) continue
+
+      const overdueIncidents = await db.incident.findMany({
+        where: {
+          agencyId: agency.id,
+          resolvedAt: null,
+          followUpDate: { lte: tomorrow },
+          severity: { in: ['HIGH', 'CRITICAL'] as IncidentSeverity[] },
+        },
+        include: {
+          client: { select: { name: true } },
+          caregiver: { select: { name: true } },
+        },
+      })
+
+      if (overdueIncidents.length > 0) {
+        const overdueList = overdueIncidents
+          .map(
+            (i) =>
+              `• [${i.severity}] ${i.title} — ${i.client.name} (follow-up: ${i.followUpDate?.toLocaleDateString('en-GB') ?? 'N/A'})`
+          )
+          .join('\n')
+
+        await resend.emails.send({
+          from: 'CareDoc AI <alerts@caredocai.com>',
+          to: recipients,
+          subject: `⚠ ${overdueIncidents.length} overdue incident(s) — ${agency.name}`,
+          text: `The following HIGH/CRITICAL incidents require immediate attention:\n\n${overdueList}\n\nPlease log into CareDoc AI to resolve or escalate.\n\nThis is an automated reminder from CareDoc AI.`,
+        })
+      }
     }
 
     return NextResponse.json({ success: true, processed: agencies.length })

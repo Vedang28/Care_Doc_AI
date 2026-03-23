@@ -17,10 +17,19 @@ interface FreeNotes {
   response: string
 }
 
+interface QualityScore {
+  overall: number
+  completeness: number
+  specificity: number
+  riskAwareness: number
+  feedback: string
+}
+
 interface GeneratedReport {
   report: string
   flags: string[]
   transformations: string[]
+  qualityScore?: QualityScore | null
 }
 
 interface VisitState {

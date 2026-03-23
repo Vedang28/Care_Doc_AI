@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FlagAlert } from '@/components/care/FlagAlert'
 import { TransformationBox } from '@/components/care/TransformationBox'
+import { IncidentSlideOver } from '@/components/care/IncidentSlideOver'
 import { formatDate, formatTime, formatDuration } from '@/lib/utils'
 import type { ReportDetail } from '@/types'
 import { ArrowLeft, CheckCircle2, Download, Loader2 } from 'lucide-react'
@@ -20,6 +21,8 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [exportingPdf, setExportingPdf] = useState(false)
+  const [slideOverOpen, setSlideOverOpen] = useState(false)
+  const [slideOverFlag, setSlideOverFlag] = useState('')
 
   async function handleExportPdf() {
     if (!report) return
@@ -112,6 +115,22 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
 
       {/* Flags + Transformations */}
       {report.flags.length > 0 && <FlagAlert flags={report.flags} />}
+      {report.flags.length > 0 && (
+        <div className="flex flex-col gap-2 mt-1">
+          {report.flags.map((flag, i) => (
+            <button
+              key={i}
+              onClick={() => {
+                setSlideOverFlag(flag)
+                setSlideOverOpen(true)
+              }}
+              className="text-left text-xs text-amber-700 hover:text-amber-900 underline"
+            >
+              + Create incident for: &ldquo;{flag.slice(0, 60)}{flag.length > 60 ? '...' : ''}&rdquo;
+            </button>
+          ))}
+        </div>
+      )}
       {report.transformations.length > 0 && <TransformationBox transformations={report.transformations} />}
 
       {/* Two-column: Notes | Report */}
@@ -178,6 +197,18 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
             Digitally signed by <strong>{report.caregiver.name}</strong> on {formatDate(report.signature.signedAt)} at {formatTime(report.signature.signedAt)}
           </p>
         </div>
+      )}
+
+      {/* Create Incident slide-over (triggered from flags) */}
+      {slideOverOpen && (
+        <IncidentSlideOver
+          open={slideOverOpen}
+          onClose={() => setSlideOverOpen(false)}
+          mode="create"
+          reportId={params.reportId}
+          flagText={slideOverFlag}
+          onSaved={() => { setSlideOverOpen(false) }}
+        />
       )}
     </div>
   )

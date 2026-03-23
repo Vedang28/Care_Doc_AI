@@ -11,6 +11,7 @@ import { DigitalSignature } from '@/components/care/DigitalSignature'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useVisitStore } from '@/store/visit'
+import { QualityScoreCard } from '@/components/care/QualityScoreCard'
 import { CheckCircle2, ArrowLeft } from 'lucide-react'
 
 interface ReviewPageProps {
@@ -102,6 +103,10 @@ export default function ReviewPage({ params }: ReviewPageProps) {
           <Badge variant="success">Audit Trail Preserved</Badge>
           <Badge variant="success">CQC Ready</Badge>
         </div>
+
+        {generatedReport?.qualityScore && (
+          <QualityScoreCard score={generatedReport.qualityScore} />
+        )}
 
         <Button onClick={handleNewVisit} className="mt-2">
           Start New Visit

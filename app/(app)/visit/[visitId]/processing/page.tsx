@@ -31,6 +31,7 @@ export default function ProcessingPage({ params }: ProcessingPageProps) {
           report:          data.report,
           flags:           data.flags,
           transformations: data.transformations,
+          qualityScore:    data.qualityScore ?? null,
         })
         setStep('review')
         router.push(`/visit/${params.visitId}/review`)

@@ -21,6 +21,11 @@ const config: Config = {
         'border-soft':       '#CBD5E1',
         'border-light':      '#E2E8F0',
         'surface':           '#F8FAFC',
+        // Severity colours (incident management)
+        'severity-critical': '#7F1D1D',
+        'severity-high':     '#92400E',
+        'severity-medium':   '#1E40AF',
+        'severity-low':      '#166534',
       },
       fontFamily: {
         display: ['var(--font-playfair)', 'Georgia', 'serif'],

@@ -5,12 +5,32 @@ import { logger } from '@/lib/logger'
 
 const client = new Anthropic()
 
+interface PolicyExtract {
+  preferredTerminology?: {
+    clientTerm?: string
+    medicationTerm?: string
+    carePlanTerm?: string
+  }
+  keyPolicies?: string[]
+  customInstructions?: string
+}
+
+const QualityScoreSchema = z.object({
+  overall: z.number().min(0).max(100),
+  completeness: z.number().min(0).max(100),
+  specificity: z.number().min(0).max(100),
+  riskAwareness: z.number().min(0).max(100),
+  feedback: z.string(),
+})
+
 const ReportResponseSchema = z.object({
   report: z.string().min(1),
   flags: z.array(z.string()),
   transformations: z.array(z.string()),
+  qualityScore: QualityScoreSchema.optional(),
 })
 
+export type QualityScore = z.infer<typeof QualityScoreSchema>
 export type ReportResponse = z.infer<typeof ReportResponseSchema>
 
 export interface GenerateReportInput {
@@ -30,10 +50,11 @@ export interface GenerateReportInput {
   }
   agencyPromptOverride?: string
   promptVersion?: string
+  policyExtract?: PolicyExtract
 }
 
 export async function generateVisitReport(input: GenerateReportInput): Promise<ReportResponse> {
-  const systemPrompt = buildSystemPrompt(input.agencyPromptOverride)
+  const systemPrompt = buildSystemPrompt(input.agencyPromptOverride, input.policyExtract)
   const userMessage = buildUserMessage(input)
 
   try {

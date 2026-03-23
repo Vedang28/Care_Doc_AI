@@ -1,101 +1,40 @@
 {
-  "version": 2,
-  "updatedAt": "2026-03-21T22:00:48.442Z",
-  "claudeRoot": "/Users/adityatiwari/Desktop/Development/Claude skill",
+  "version": 4,
+  "updatedAt": "2026-03-23T05:00:00.000Z",
+  "claudeRoot": "/Users/vedangvaidya/Desktop/Projects/Care_Doc_AI",
   "resumeBrief": {
-    "instruction": "Use this file as the source of truth for session restore. Only open the listed files first.",
-    "currentState": "Preparing commit and push to GitHub",
-    "nextAction": "Review git diff, commit the claude-forge upgrade, and push main",
-    "blockers": [],
+    "instruction": "Use this file as the source of truth for session restore.",
+    "currentState": "Phase 3 complete. Ready to start Phase 4.",
+    "nextAction": "Start Phase 4 — AI SaaS Scale (Stripe billing, white-label, family portal, MAR module)",
+    "blockers": [
+      "DATABASE_URL not set — Phase 3 migrations pending",
+      "ANTHROPIC_API_KEY not set",
+      "NEXTAUTH_SECRET not set",
+      "RESEND_API_KEY is placeholder",
+      "Cloudflare R2 / PDF Worker URLs are placeholders",
+      "UPSTASH_REDIS_REST_URL / TOKEN are placeholders"
+    ],
     "openFirst": [
       "memory/current-context.json",
-      "PRIORITY-WORK.md",
-      "scripts/session-memory.js",
-      "scripts/task-orchestrator.js",
-      "scripts/project-scan.js"
-    ],
-    "suggestedFiles": [
-      "scripts/session-memory.js",
-      "scripts/task-orchestrator.js",
-      "scripts/project-scan.js",
-      "README.md"
-    ],
-    "commandsToReuse": [
-      "node scripts/task-orchestrator.js --task \"upgrade claude-forge\" --needs-backend --needs-testing --context-usage 61",
-      "node scripts/session-guard.js --context-usage 96 --auto-close --summary \"...\" --in-progress \"...\" --next \"...\""
-    ],
-    "avoidReading": [
-      "Read memory/current-context.json first.",
-      "Do not scan the full repo unless the brief is missing something critical.",
-      "Do not open memory/decisions.md, memory/patterns.md, or memory/errors.md unless the current task needs them."
-    ],
-    "checkpointPolicy": {
-      "warnAtPercent": 70,
-      "saveAtPercent": 85,
-      "closeAtPercent": 95,
-      "closeAction": "If usage reaches the stop threshold, save and resume in a fresh session."
-    }
+      "UPDATE.md",
+      "Docs/PHASE-4-AI-SAAS-SCALE.md"
+    ]
   },
   "session": {
-    "label": "focus-session",
-    "reason": "manual-save",
+    "label": "phase3-complete",
     "completed": [
-      "Upgraded memory system and added orchestration tooling"
+      "Phase 1 — Foundation MVP",
+      "Phase 2 — Production Hardening (13 chunks)",
+      "Phase 3 — Compliance Reporting (20 chunks)"
     ],
-    "inProgress": [
-      "Preparing commit and push to GitHub"
-    ],
+    "inProgress": [],
     "nextSteps": [
-      "Review git diff, commit the claude-forge upgrade, and push main"
+      "Fill real env vars (DATABASE_URL, ANTHROPIC_API_KEY, NEXTAUTH_SECRET, RESEND_API_KEY)",
+      "Run Phase 2+3 DB migrations",
+      "Deploy Cloudflare Worker for PDF generation",
+      "Set up Upstash Redis for theme caching",
+      "Start Phase 4"
     ],
-    "blockers": [],
-    "mustRemember": [
-      "PRIORITY-WORK now syncs automatically from session saves",
-      "decisions.md auto-appends fresh decisions from structured saves",
-      "orchestrate + project-scan are now first-class workflow tools"
-    ],
-    "recentDecisions": [
-      "Added project-scan and task-orchestrator JavaScript helpers",
-      "Structured session saves now sync PRIORITY-WORK and append decisions automatically"
-    ],
-    "openQuestions": [],
-    "importantCommands": [
-      "node scripts/task-orchestrator.js --task \"upgrade claude-forge\" --needs-backend --needs-testing --context-usage 61",
-      "node scripts/session-guard.js --context-usage 96 --auto-close --summary \"...\" --in-progress \"...\" --next \"...\""
-    ],
-    "contextWindow": {
-      "usagePercent": 61,
-      "remainingPercent": 39,
-      "thresholds": {
-        "warn": 70,
-        "save": 85,
-        "close": 95
-      },
-      "pressure": "normal",
-      "recommendedAction": "continue",
-      "closeRecommended": false,
-      "policy": "Warn at 70% used, checkpoint at 85% used, stop at 95% used."
-    }
-  },
-  "projectSnapshot": {
-    "priorityFiles": [
-      "memory/current-context.json",
-      "PRIORITY-WORK.md",
-      "scripts/session-memory.js",
-      "scripts/task-orchestrator.js",
-      "scripts/project-scan.js"
-    ],
-    "recentMemoryFiles": [
-      "memory/INDEX.md",
-      "memory/session-log.md",
-      "memory/project-brain.md",
-      "PRIORITY-WORK.md"
-    ],
-    "recentWorkspaceFiles": [
-      "scripts/session-memory.js",
-      "scripts/task-orchestrator.js",
-      "scripts/project-scan.js",
-      "README.md"
-    ]
+    "buildStatus": "npm run build PASSES | tsc --noEmit PASSES | next lint PASSES (Phase 3 complete)"
   }
 }

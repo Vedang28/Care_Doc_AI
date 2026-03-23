@@ -27,6 +27,7 @@ model Agency {
   notifications   Notification[]
   settings        AgencySettings?
   rotaAssignments RotaAssignment[]
+  incidents       Incident[]
 }
 
 model User {
@@ -40,12 +41,13 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  agency          Agency           @relation(fields: [agencyId], references: [id])
-  visits          Visit[]
-  signatures      Signature[]
-  auditLogs       AuditLog[]
-  rotaAssignments RotaAssignment[]
-  notifications   Notification[]
+  agency             Agency           @relation(fields: [agencyId], references: [id])
+  visits             Visit[]
+  signatures         Signature[]
+  auditLogs          AuditLog[]
+  rotaAssignments    RotaAssignment[]
+  notifications      Notification[]
+  caregiverIncidents Incident[]       @relation("IncidentCaregiver")
 
   @@index([agencyId])
 }
@@ -66,13 +68,15 @@ model Client {
   conditions String[]
   carePlan   String
   risks      String?
-  active     Boolean   @default(true)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  active               Boolean   @default(true)
+  visitFrequencyDays   Int       @default(1)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   agency          Agency          @relation(fields: [agencyId], references: [id])
   visits          Visit[]
   rotaAssignments RotaAssignment[]
+  incidents       Incident[]
 
   @@index([agencyId])
 }
@@ -164,11 +168,17 @@ model Report {
   promptVersion   String
   status          ReportStatus @default(PENDING)
   createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  updatedAt            DateTime     @updatedAt
+  qualityScoreOverall  Int?
+  qualityCompleteness  Int?
+  qualitySpecificity   Int?
+  qualityRiskAwareness Int?
+  qualityFeedback      String?
 
   visit     Visit      @relation(fields: [visitId], references: [id])
   agency    Agency     @relation(fields: [agencyId], references: [id])
   signature Signature?
+  incidents Incident[]
 
   @@index([agencyId])
 }
@@ -231,6 +241,7 @@ model AgencySettings {
   notifyOnFlags   Boolean  @default(true)
   notifyEmail     String?
   timezone        String   @default("Europe/London")
+  policyExtract   Json?
 
   agency Agency @relation(fields: [agencyId], references: [id])
 }
@@ -250,4 +261,39 @@ model Notification {
 
   @@index([userId, read])
   @@index([agencyId])
+}
+
+model Incident {
+  id            String           @id @default(uuid())
+  reportId      String
+  agencyId      String
+  clientId      String
+  caregiverId   String
+  severity      IncidentSeverity
+  title         String
+  description   String
+  actionsTaken  String?
+  followUpDate  DateTime?
+  resolvedAt    DateTime?
+  resolvedBy    String?
+  escalated     Boolean          @default(false)
+  escalatedAt   DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  report    Report @relation(fields: [reportId], references: [id])
+  agency    Agency @relation(fields: [agencyId], references: [id])
+  client    Client @relation(fields: [clientId], references: [id])
+  caregiver User   @relation("IncidentCaregiver", fields: [caregiverId], references: [id])
+
+  @@index([agencyId, resolvedAt])
+  @@index([clientId])
+  @@index([caregiverId])
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }

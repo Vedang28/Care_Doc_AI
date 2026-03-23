@@ -1,80 +1,66 @@
-# Project Brain — Persistent Knowledge
+# Project Brain — CareDoc AI
 
-> Facts about this specific project that Claude should always know.
-> Unlike PRIORITY-WORK.md (current task), this is evergreen project knowledge.
-> Updated by /session-end when new permanent knowledge is discovered.
-
----
+## Project Identity
+- **Name**: CareDoc AI
+- **Purpose**: AI-powered CQC-compliant visit documentation platform for UK domiciliary care agencies
+- **Stack**: Next.js 14 App Router, Prisma + Neon PostgreSQL, NextAuth v5, Tailwind CSS, Anthropic Claude API
+- **Deployment target**: Vercel
+- **Current phase**: Phase 3 of 4
 
 ## Project-Specific Rules
-
-> Things that are true for THIS project that override general knowledge.
-
-- [FILL — e.g. "We use argon2, NOT bcrypt — already decided, don't suggest changing"]
-- [FILL — e.g. "Frontend uses Zustand, NOT Redux — don't suggest Redux"]
-- [FILL — e.g. "All IDs are CUIDs, never UUIDs or integers"]
-- [FILL — e.g. "Soft deletes everywhere — never hard delete user data"]
-
----
+- All IDs are UUIDs (`@default(uuid())`)
+- All queries MUST filter by `agencyId` — use `lib/db/agency-guard.ts`
+- `getAgencyContext()` re-fetches user from DB on every request (prevents stale-JWT spoofing)
+- Never hard-delete user data — use soft deletes where applicable
+- All admin routes require ADMIN role; non-admin users redirect to `/dashboard`
+- `@ducanh2912/next-pwa` is used (NOT `next-pwa`) — ESM-compatible
+- Cloudflare Worker types are excluded from `tsconfig.json` (`workers/` in exclude array)
+- `prisma generate` must be run after any schema change before TypeScript will be happy
 
 ## Key Files & Their Roles
-
-> "What is X for?" — so Claude doesn't have to re-explore every session.
-
 | File | Purpose |
 |------|---------|
-| [FILL path] | [FILL description] |
-| [FILL path] | [FILL description] |
-
----
+| `lib/db/agency-guard.ts` | `getAgencyContext()` + `assertSameAgency()` — row-level security |
+| `lib/ai/generate-report.ts` | Main AI report generation function |
+| `lib/ai/prompts.ts` | System prompt for visit report generation |
+| `lib/notifications.ts` | `createNotification()` + `notifyManagersOfFlaggedReport()` |
+| `lib/offline/visit-queue.ts` | IndexedDB queue for offline visits |
+| `lib/pdf/report-template.ts` | `buildReportHtml()` — A4 HTML report builder |
+| `lib/utils.ts` | `haversineDistance()`, `formatDate()`, `formatTime()`, `formatDuration()` |
+| `hooks/useNetworkStatus.ts` | `isOnline`/`wasOffline` network detection |
+| `hooks/useVoiceInput.ts` | Web Speech API wrapper (en-GB, append-only) |
+| `workers/pdf-generator/src/index.ts` | Cloudflare Worker PDF stub (Puppeteer ready) |
+| `emails/FlaggedReportEmail.tsx` | React Email flagged report alert |
+| `emails/DailyDigestEmail.tsx` | React Email daily digest |
+| `vercel.json` | Cron: daily-digest at 08:00 UTC |
 
 ## Non-Obvious Architecture
-
-> Things that aren't obvious from reading the code.
-
-- [FILL — e.g. "Auth middleware is applied at the ROUTER level, not individual routes"]
-- [FILL — e.g. "BullMQ queue 'emails' has a concurrency of 3 — don't increase, SendGrid rate limit"]
-- [FILL — e.g. "The /health endpoint intentionally does NOT check DB — used by load balancer every 5s"]
-
----
+- `middleware.ts` parses host header and injects `x-agency-subdomain` for multi-tenant routing
+- `app/api/sync/visit/route.ts` — offline sync endpoint; must match `generateVisitReport()` signature exactly
+- `generateVisitReport()` takes `{ clientName, conditions, carePlan, visitDate, checkInTime, checkOutTime, completedTasks, freeNotes }` NOT a visitId
+- GPS verify-location is fire-and-forget (non-blocking) — called after navigation starts
+- Quality scoring will be added to AI report response in Phase 3 (new JSON fields on Report model)
 
 ## Environment Gotchas
+- `DATABASE_URL` must use `?sslmode=require` (Neon)
+- `CRON_SECRET` is checked via `Authorization: Bearer` header on cron routes
+- `PDF_WORKER_SECRET` is passed as `X-Worker-Secret` header to Cloudflare Worker
+- Google Maps API key is already set with a real value in `.env.local`
 
-> Things that will burn time if forgotten.
+## Phase 3 — What to Build
+1. Quality scoring on AI report generation (update prompts.ts, Report model, success screen)
+2. CQC Compliance Dashboard (`/manager/compliance`) with Recharts
+3. AI theme extraction (`/api/manager/compliance/themes`) — Upstash Redis cache
+4. Client risk overview + `/manager/clients/[clientId]` detail page
+5. Audit trail export — inspection pack PDF + CSV ZIP
+6. Incident management module (`/manager/incidents`)
+7. Care policy customisation (`/admin/policy`) with pdf-parse + mammoth
 
-- [FILL — e.g. "JWT_SECRET must be ≥ 32 chars or the app throws on startup with a cryptic error"]
-- [FILL — e.g. "DATABASE_URL must use ?sslmode=require in production (Supabase)"]
-- [FILL — e.g. "Redis must be running before npm run dev — app does NOT gracefully degrade without it"]
-
----
-
-## Deployment Notes
-
-> Things that matter for shipping.
-
-- [FILL — e.g. "PM2 process name is 'myapp-backend' — NOT 'myapp'"]
-- [FILL — e.g. "Migrations must run manually on prod after deploy — not in CI"]
-- [FILL — e.g. "VPS has Node 18, not 20 — watch for Node 20-specific APIs"]
-
----
-
-## What Has Been Built So Far
-
-> Running inventory of completed features (high level).
-
-- [ ] [Feature 1]
-- [ ] [Feature 2]
-
----
-
-## Known Technical Debt
-
-> Things that work but should be improved later.
-
-- [FILL — e.g. "authService.js is 300 lines — should be split into tokenService + passwordService"]
-- [FILL — e.g. "No integration tests for payment webhooks yet"]
-
----
-
-> This file grows over time. Add to it via /session-end when new permanent knowledge is discovered.
-> Never delete entries — mark them as resolved/outdated instead.
+## Pending DB Migrations (run when DATABASE_URL is set)
+```bash
+npx prisma migrate dev --name phase2-agency-settings-notifications
+npx prisma migrate dev --name add-quality-scoring-to-reports
+npx prisma migrate dev --name add-incident-management
+npx prisma migrate dev --name add-visit-frequency-to-clients
+npx prisma migrate dev --name add-policy-extract-to-agency-settings
+```

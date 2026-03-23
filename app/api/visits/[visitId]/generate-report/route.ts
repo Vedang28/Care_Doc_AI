@@ -72,6 +72,12 @@ export async function POST(
           status: result.flags.includes('AI processing failed — manual review required')
             ? 'FLAGGED'
             : 'PENDING',
+          // Quality scoring (may be null if AI didn't return it)
+          qualityScoreOverall: result.qualityScore?.overall ?? null,
+          qualityCompleteness: result.qualityScore?.completeness ?? null,
+          qualitySpecificity: result.qualityScore?.specificity ?? null,
+          qualityRiskAwareness: result.qualityScore?.riskAwareness ?? null,
+          qualityFeedback: result.qualityScore?.feedback ?? null,
         },
       }),
       db.visit.update({
@@ -97,6 +103,7 @@ export async function POST(
       report: result.report,
       flags: result.flags,
       transformations: result.transformations,
+      qualityScore: result.qualityScore ?? null,
     })
   } catch (error) {
     return errorResponse('Report generation failed', 'AI_ERROR', 500, error)

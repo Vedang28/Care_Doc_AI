@@ -4,6 +4,217 @@ Newest entries at top.
 
 ---
 
+## [2026-03-23] — Phase 3: Compliance Reporting & Manager Dashboard — COMPLETE
+**Status:** ✅ Complete — `npm run build` ✅ | `tsc --noEmit` ✅ | `next lint` ✅
+**Chunks:** 20 chunks (1-20)
+
+### Summary of all Phase 3 changes
+
+**Schema (Chunks 1, 4):**
+- `Report`: qualityScoreOverall, qualityCompleteness, qualitySpecificity, qualityRiskAwareness, qualityFeedback, incidents relation
+- `Client`: visitFrequencyDays Int @default(1), incidents relation
+- `AgencySettings`: policyExtract Json?
+- New `Incident` model + `IncidentSeverity` enum (LOW/MEDIUM/HIGH/CRITICAL)
+- `prisma generate` run successfully
+
+**AI Quality Scoring (Chunks 2-3):**
+- System prompt now returns qualityScore JSON in AI response
+- `buildSystemPrompt` accepts `policyExtract` for custom terminology injection
+- `QualityScoreCard` component (SVG ring, no external lib) on caregiver success screen
+
+**Compliance Engine (Chunks 4-6):**
+- `lib/compliance/score.ts` — 4 sub-scores, weighted average, trend detection, daily history
+- `GET /api/manager/compliance` — returns score, history, clientRisk, caregiverSummary
+- `POST /api/manager/compliance/themes` — Claude Haiku AI extraction, Upstash Redis 6hr cache
+
+**Compliance Dashboard (Chunks 7-10):**
+- `/manager/compliance` — 4 score cards, Recharts line chart, key themes panel, client risk table, caregiver performance summary
+- Manager layout with tab navigation: Compliance | Reports | Incidents
+
+**Incident Management (Chunks 11-15):**
+- `lib/incidents.ts` — `notifyAdminsOfCriticalIncident()` (immediate email for HIGH/CRITICAL)
+- `POST/GET /api/manager/incidents` + `GET/PUT /api/manager/incidents/[id]`
+- Daily cron extended with overdue incident reminders
+- `/manager/incidents` — filterable table, severity colours, OVERDUE badge
+- `IncidentSlideOver` — create (with CRITICAL safeguarding alert) and resolve flows
+- "Create Incident" buttons on each flag in report detail
+
+**Audit Trail Export (Chunks 16-17):**
+- `lib/pdf/audit-template.ts` — full inspection pack HTML builder
+- `POST /api/manager/clients/[clientId]/export` — PDF via Cloudflare Worker or HTML fallback, CSV ZIP
+- `ExportModal` — date presets, options, redaction toggle, format selection
+- `/manager/clients/[clientId]` — client detail page with visit history
+
+**Care Policy Customisation (Chunks 18-20):**
+- `POST /api/admin/policy/upload` — R2 upload (graceful fallback)
+- `POST /api/admin/policy/extract` — pdf-parse/mammoth + Claude Haiku extraction
+- `POST /api/admin/policy/activate` — creates PromptVersion, updates AgencySettings.policyExtract
+- `GET /api/admin/policy/versions` + restore endpoint
+- `/admin/policy` — drag-and-drop upload, terminology review, version history
+
+### New env vars
+```env
+UPSTASH_REDIS_REST_URL="placeholder"
+UPSTASH_REDIS_REST_TOKEN="placeholder"
+```
+
+### New dependencies
+- recharts, pdf-parse, mammoth, @upstash/redis, @aws-sdk/client-s3, @types/pdf-parse
+
+### Migrations needed (run when DATABASE_URL is set)
+```bash
+npx prisma migrate dev --name add-quality-scoring-to-reports
+npx prisma migrate dev --name add-incident-management
+npx prisma migrate dev --name add-visit-frequency-to-clients
+npx prisma migrate dev --name add-policy-extract-to-agency-settings
+```
+
+---
+
+## [2026-03-23] — Phase 3 Chunks 13-15: Incident Management UI
+Status: ✅ Complete
+Agent: frontend
+Files created: app/(app)/manager/incidents/page.tsx, components/care/IncidentSlideOver.tsx
+Files modified: app/(app)/manager/reports/[reportId]/page.tsx
+Changes: Incident list with filter tabs, severity colour system, OVERDUE badge. Slide-over for create (with CRITICAL safeguarding alert) and resolve flows. "Create Incident" buttons on each flag in report detail.
+Build status: tsc --noEmit ✅
+Next: Chunk 16-17 — Audit trail export UI
+
+---
+
+## [2026-03-23] — Phase 3 Chunk 17: Client Detail + Export Modal
+Status: ✅ Complete
+Agent: frontend
+Files created: app/(app)/manager/clients/[clientId]/page.tsx, components/care/ExportModal.tsx
+Files created (if missing): app/api/manager/clients/[clientId]/route.ts
+Changes: Client detail page with visit history. Export modal with date presets, include options, redaction toggle, PDF/CSV format selection. Wired to /api/manager/clients/[clientId]/export.
+Build status: tsc --noEmit ✅
+Next: Chunk 18-19 — Policy UI
+
+---
+
+## [2026-03-23] — Phase 3 Chunks 19-20: Policy Upload UI
+Status: ✅ Complete
+Agent: frontend
+Files created: app/(app)/admin/policy/page.tsx
+Changes: Policy page with drag-and-drop upload, AI extraction review (editable terminology/policies/instructions), activate button creates new PromptVersion. Version history table with restore. State machine: idle → uploading → review → activating → idle.
+Build status: tsc --noEmit ✅
+Next: Final build check
+
+---
+
+## [2026-03-23] — Phase 3 Chunks 7-10: Compliance Dashboard UI (Full)
+Status: ✅ Complete
+Agent: frontend
+Files created: app/(app)/manager/compliance/page.tsx
+Changes: Full compliance dashboard — 4 score cards, Recharts line chart (30-day history), AI key themes panel, client risk overview table, caregiver performance summary. All data wired to real API. Skeleton loading, empty states, error state.
+Build status: tsc --noEmit ✅
+Next: Chunk 13 — Incident list UI
+
+---
+
+## [2026-03-23] — Phase 3 Chunk 18: Care Policy Backend
+Status: ✅ Complete
+Agent: backend
+Files created: app/api/admin/policy/upload/route.ts, app/api/admin/policy/extract/route.ts, app/api/admin/policy/activate/route.ts, app/api/admin/policy/versions/route.ts
+Changes: Policy document upload (R2 if configured), text extraction via pdf-parse/mammoth, Claude Haiku terminology extraction, activate creates new PromptVersion + updates AgencySettings.policyExtract, version restore endpoint.
+Build status: tsc --noEmit ✅
+Next: Chunk 19 — Policy upload UI
+
+---
+
+## [2026-03-23] — Phase 3 Chunk 16: Audit Trail Export
+Status: ✅ Complete
+Agent: backend
+Files created: app/api/manager/clients/[clientId]/export/route.ts, lib/pdf/audit-template.ts
+Changes: POST endpoint generates full inspection pack. PDF mode via Cloudflare Worker (HTML fallback). CSV mode returns 4-file JSON. Date range validation (max 1 year). Caregiver anonymisation option. AuditLog entry on every export.
+Build status: tsc --noEmit ✅
+Next: Chunk 17 — Export modal UI
+
+---
+
+## [2026-03-23] — Phase 3 Chunk 11: Incident Management API
+Status: ✅ Complete
+Agent: backend
+Files created: app/api/manager/incidents/route.ts, app/api/manager/incidents/[id]/route.ts, lib/incidents.ts
+Changes: Full CRUD for incidents. GET supports filter=all|open|resolved|escalated. POST validates agency ownership. isOverdue computed on GET. CRITICAL/HIGH triggers immediate admin email.
+Build status: tsc --noEmit ✅
+Next: Chunk 12 — Cron reminders
+
+---
+
+## [2026-03-23] — Phase 3 Chunk 12: Overdue Incident Cron Reminders
+Status: ✅ Complete
+Agent: backend
+Files modified: app/api/cron/daily-digest/route.ts
+Changes: Daily cron now also sends overdue incident reminder email for HIGH/CRITICAL incidents where followUpDate < tomorrow and resolvedAt = null.
+Build status: tsc --noEmit ✅
+Next: Chunk 13 — Incident list UI
+
+---
+
+## [2026-03-23] — Phase 3 Chunk 3: Quality Score Ring UI
+Status: ✅ Complete
+Agent: frontend
+Files created: components/care/QualityScoreCard.tsx
+Files modified: app/api/visits/[visitId]/generate-report/route.ts, store/visit.ts, app/(app)/visit/[visitId]/processing/page.tsx, app/(app)/visit/[visitId]/review/page.tsx
+Changes: Quality score saved to DB on report generation. Ring component (SVG, no extra lib) with breakdown bars. Shown on caregiver success screen after submission.
+Build status: tsc --noEmit ✅
+Next: Chunk 4 — Compliance Score Engine
+
+---
+
+## [2026-03-23] — Phase 3 Chunk 4: Compliance Score Engine
+Status: ✅ Complete
+Agent: backend
+Files created: lib/compliance/score.ts
+Changes: calculateComplianceScore() with 4 sub-scores (completion, quality, sign-off, flag resolution), weighted average, trend detection, daily history, getClientRiskOverview()
+Build status: tsc --noEmit ✅
+Next: Chunk 5 — Compliance API
+
+---
+
+## [2026-03-23] — Phase 3 Chunk 5: Compliance API
+Status: ✅ Complete
+Agent: backend
+Files created: app/api/manager/compliance/route.ts
+Changes: GET returns score, history, clientRisk, caregiverSummary
+Build status: tsc --noEmit ✅
+Next: Chunk 6 — AI Themes
+
+---
+
+## [2026-03-23] — Phase 3 Chunk 6: AI Theme Extraction
+Status: ✅ Complete
+Agent: backend
+Files created: app/api/manager/compliance/themes/route.ts
+Changes: POST endpoint, Claude Haiku analysis, Upstash Redis 6hr cache (gracefully skipped when env is placeholder)
+Build status: tsc --noEmit ✅
+Next: Chunk 7 — Compliance Dashboard UI
+
+---
+
+## [2026-03-23] — Phase 3 Chunk 1: Quality Score Schema
+Status: ✅ Complete
+Agent: backend
+Files modified: prisma/schema.prisma
+Changes: Added qualityScore fields to Report, visitFrequencyDays to Client, policyExtract to AgencySettings, Incident model + IncidentSeverity enum
+Build status: prisma generate ✅
+Note: Migration skipped — DATABASE_URL is placeholder. Run `npx prisma migrate dev --name add-quality-scoring-to-reports` and `npx prisma migrate dev --name add-incident-management` when DATABASE_URL is set.
+Next: Chunk 2 — AI prompt update
+
+---
+
+## [2026-03-23] — Phase 3 Chunk 2: AI Quality Scoring
+Status: ✅ Complete
+Agent: backend
+Files modified: lib/ai/prompts.ts, lib/ai/generate-report.ts
+Changes: System prompt now returns qualityScore JSON. ReportResponseSchema extended with QualityScoreSchema. buildSystemPrompt accepts policyExtract for custom terminology.
+Build status: tsc --noEmit ✅
+Next: Chunk 3 — Quality score ring UI
+
+---
+
 ## [CHUNKS 3–13] Phase 2 Full Feature Build
 **Date:** 2026-03-23
 **Phase:** 2 — Production Hardening
