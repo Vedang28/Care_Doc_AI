@@ -1,5 +1,99 @@
 import { formatDate, formatTime, formatDuration } from '@/lib/utils'
 
+// ─── MAR types ───────────────────────────────────────────────────────────────
+
+type MarOutcome = 'ADMINISTERED' | 'PROMPTED' | 'REFUSED' | 'MISSED' | 'NOT_DUE' | 'STOCK_OUT'
+
+export interface MarEntryWithMed {
+  id: string
+  outcome: MarOutcome
+  administeredAt: Date | null
+  refusalReason: string | null
+  missedReason: string | null
+  notes: string | null
+  medication: {
+    name: string
+    dose: string
+    route: string
+    frequency: string
+  }
+}
+
+// ─── MAR grid builder ────────────────────────────────────────────────────────
+
+function buildMarGridSection(marEntries: MarEntryWithMed[]): string {
+  if (marEntries.length === 0) return ''
+
+  const OUTCOME_CODE: Record<MarOutcome, string> = {
+    ADMINISTERED: 'A',
+    PROMPTED: 'P',
+    REFUSED: 'R',
+    MISSED: 'M',
+    NOT_DUE: '—',
+    STOCK_OUT: 'S',
+  }
+
+  const OUTCOME_COLOR: Record<MarOutcome, string> = {
+    ADMINISTERED: '#166534',
+    PROMPTED: '#1e40af',
+    REFUSED: '#92400E',
+    MISSED: '#7F1D1D',
+    NOT_DUE: '#64748b',
+    STOCK_OUT: '#c2410c',
+  }
+
+  // Group by medication name
+  const byMed = new Map<string, MarEntryWithMed[]>()
+  for (const entry of marEntries) {
+    const key = entry.medication.name
+    if (!byMed.has(key)) byMed.set(key, [])
+    byMed.get(key)!.push(entry)
+  }
+
+  const rows = Array.from(byMed.entries()).map(([medName, entries]) => {
+    const cells = entries
+      .map(
+        (e) => `
+      <td style="border: 1px solid #ccc; padding: 4px 8px; text-align: center; font-weight: bold;
+          color: ${OUTCOME_COLOR[e.outcome]}">
+        ${OUTCOME_CODE[e.outcome] ?? '?'}
+      </td>`
+      )
+      .join('')
+    const noteParts = entries
+      .filter((e) => e.refusalReason ?? e.missedReason ?? e.notes)
+      .map((e) => e.refusalReason ?? e.missedReason ?? e.notes ?? '')
+      .join('; ')
+    return `<tr>
+      <td style="border: 1px solid #ccc; padding: 4px 8px; font-weight: 500;">${escapeHtml(medName)}</td>
+      ${cells}
+      <td style="border: 1px solid #ccc; padding: 4px 8px; color: #64748b; font-size: 11px;">${escapeHtml(noteParts)}</td>
+    </tr>`
+  }).join('')
+
+  return `
+    <div style="margin-top: 32px; page-break-inside: avoid;">
+      <h2 style="font-size: 16px; font-weight: 700; color: #2D6A4F; border-bottom: 2px solid #2D6A4F; padding-bottom: 6px; margin-bottom: 12px;">
+        Medication Administration Record
+      </h2>
+      <p style="font-size: 11px; color: #64748b; margin-bottom: 12px;">
+        A = Administered &nbsp; P = Prompted &nbsp; R = Refused &nbsp; M = Missed &nbsp; — = Not Due &nbsp; S = Stock Out
+      </p>
+      <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+        <thead>
+          <tr style="background: #f1f5f9;">
+            <th style="border: 1px solid #ccc; padding: 6px 8px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Medication</th>
+            <th style="border: 1px solid #ccc; padding: 6px 8px; text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Outcome</th>
+            <th style="border: 1px solid #ccc; padding: 6px 8px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Notes</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`
+}
+
+// ─── Main data interface ──────────────────────────────────────────────────────
+
 interface AuditPackData {
   client: {
     name: string
@@ -61,6 +155,7 @@ interface AuditPackData {
     anonymiseCaregivers: boolean
     redactedLabel: string
   }
+  marEntries?: MarEntryWithMed[]
 }
 
 function escapeHtml(str: string): string {
@@ -81,7 +176,7 @@ function statusLabel(status: string): string {
 }
 
 export function buildAuditPackHtml(data: AuditPackData): string {
-  const { client, agencyName, dateFrom, dateTo, exportDate, visits, reports, flags, auditLogs, options } = data
+  const { client, agencyName, dateFrom, dateTo, exportDate, visits, reports, flags, auditLogs, options, marEntries = [] } = data
 
   const exportDateStr = formatDate(exportDate)
 
@@ -491,6 +586,8 @@ export function buildAuditPackHtml(data: AuditPackData): string {
   ${flaggedSection}
 
   ${auditSection}
+
+  ${marEntries.length > 0 ? `<div class="page-break">${buildMarGridSection(marEntries)}</div>` : ''}
 
   <div class="print-footer">
     Exported from CareDoc AI | ${exportDateStr} | CONFIDENTIAL

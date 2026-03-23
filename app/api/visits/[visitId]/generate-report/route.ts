@@ -58,6 +58,18 @@ export async function POST(
       promptVersion: promptVersion?.version ?? '1.0',
     })
 
+    // Check for MAR flags (REFUSED / MISSED entries) for this visit
+    const marEntries = await db.marEntry.findMany({ where: { visitId } })
+    const marFlags: string[] = []
+    for (const entry of marEntries) {
+      if (entry.outcome === 'REFUSED' && entry.refusalReason) {
+        marFlags.push(`Medication refused: ${entry.refusalReason}`)
+      }
+      if (entry.outcome === 'MISSED' && entry.missedReason) {
+        marFlags.push(`Medication missed: ${entry.missedReason}`)
+      }
+    }
+
     // Store report and update visit status atomically
     const [report] = await db.$transaction([
       db.report.create({
@@ -65,13 +77,15 @@ export async function POST(
           visitId,
           agencyId: userOrError.agencyId,
           reportText: result.report,
-          flags: result.flags,
+          flags: [...result.flags, ...marFlags],
           transformations: result.transformations,
           aiModel: 'claude-sonnet-4-20250514',
           promptVersion: promptVersion?.version ?? '1.0',
-          status: result.flags.includes('AI processing failed — manual review required')
-            ? 'FLAGGED'
-            : 'PENDING',
+          status:
+            result.flags.includes('AI processing failed — manual review required') ||
+            marFlags.length > 0
+              ? 'FLAGGED'
+              : 'PENDING',
           // Quality scoring (may be null if AI didn't return it)
           qualityScoreOverall: result.qualityScore?.overall ?? null,
           qualityCompleteness: result.qualityScore?.completeness ?? null,
@@ -98,10 +112,36 @@ export async function POST(
       },
     })
 
+    // Fire-and-forget family summary generation
+    void fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/portal/generate-family-summary`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visitId: params.visitId }),
+    }).catch((err) => console.warn('[generate-report] Family summary generation failed:', err))
+
+    // Fire-and-forget family push notifications
+    void import('@/lib/push/notify-family')
+      .then(({ notifyFamilyOnVisit }) => notifyFamilyOnVisit(params.visitId))
+      .catch((err) => console.warn('[generate-report] Family push notification failed:', err))
+
+    // Fire-and-forget webhook delivery
+    void import('@/lib/webhooks/deliver').then(({ deliverWebhooks }) =>
+      deliverWebhooks({
+        event: 'report.submitted',
+        agencyId: userOrError.agencyId,
+        reportId: report.id,
+        visitId: params.visitId,
+        clientId: visit.clientId,
+        submittedAt: new Date().toISOString(),
+        hasFlags: result.flags.length > 0,
+        flagCount: result.flags.length,
+      }),
+    ).catch((err) => console.warn('[generate-report] Webhook delivery failed:', err))
+
     return NextResponse.json({
       reportId: report.id,
       report: result.report,
-      flags: result.flags,
+      flags: [...result.flags, ...marFlags],
       transformations: result.transformations,
       qualityScore: result.qualityScore ?? null,
     })

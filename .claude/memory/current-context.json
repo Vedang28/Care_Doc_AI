@@ -1,40 +1,55 @@
 {
-  "version": 4,
-  "updatedAt": "2026-03-23T05:00:00.000Z",
+  "version": 5,
+  "updatedAt": "2026-03-23T10:00:00.000Z",
   "claudeRoot": "/Users/vedangvaidya/Desktop/Projects/Care_Doc_AI",
   "resumeBrief": {
     "instruction": "Use this file as the source of truth for session restore.",
-    "currentState": "Phase 3 complete. Ready to start Phase 4.",
-    "nextAction": "Start Phase 4 — AI SaaS Scale (Stripe billing, white-label, family portal, MAR module)",
+    "currentState": "Phase 4 complete. All 20 chunks built and verified. Build passing.",
+    "nextAction": "Start Phase 5 (if defined) OR run DB migrations for Phase 4 schema additions (7 new models)",
     "blockers": [
-      "DATABASE_URL not set — Phase 3 migrations pending",
-      "ANTHROPIC_API_KEY not set",
-      "NEXTAUTH_SECRET not set",
-      "RESEND_API_KEY is placeholder",
-      "Cloudflare R2 / PDF Worker URLs are placeholders",
-      "UPSTASH_REDIS_REST_URL / TOKEN are placeholders"
+      "DATABASE_URL — Phase 4 migrations pending (Medication, MarEntry, MarDiscrepancy, FamilyContact, FamilyPushSubscription, ApiKey, AiUsageLog, Webhook)",
+      "STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET — placeholders, billing features won't activate",
+      "RESEND_API_KEY — placeholder, family consent emails won't send",
+      "UPSTASH_REDIS_REST_URL / TOKEN — placeholders, caching and rate limiting degrade gracefully",
+      "ANTHROPIC_API_KEY — needed for AI suggestions, family summaries"
     ],
     "openFirst": [
       "memory/current-context.json",
-      "UPDATE.md",
-      "Docs/PHASE-4-AI-SAAS-SCALE.md"
+      "UPDATE.md"
     ]
   },
   "session": {
-    "label": "phase3-complete",
+    "label": "phase4-complete",
     "completed": [
       "Phase 1 — Foundation MVP",
       "Phase 2 — Production Hardening (13 chunks)",
-      "Phase 3 — Compliance Reporting (20 chunks)"
+      "Phase 3 — Compliance Reporting (20 chunks)",
+      "Phase 4 — AI Sophistication & SaaS Scale (20 chunks)"
     ],
     "inProgress": [],
     "nextSteps": [
-      "Fill real env vars (DATABASE_URL, ANTHROPIC_API_KEY, NEXTAUTH_SECRET, RESEND_API_KEY)",
-      "Run Phase 2+3 DB migrations",
-      "Deploy Cloudflare Worker for PDF generation",
-      "Set up Upstash Redis for theme caching",
-      "Start Phase 4"
+      "Run prisma migrate deploy for Phase 4 schema (7 new models)",
+      "Set real Stripe keys and configure products/prices",
+      "Set real RESEND_API_KEY for family contact emails",
+      "Configure UPSTASH_REDIS for production caching",
+      "Generate VAPID keys for production (done in dev, verify .env.local values)",
+      "Start Phase 5 when ready"
     ],
-    "buildStatus": "npm run build PASSES | tsc --noEmit PASSES | next lint PASSES (Phase 3 complete)"
+    "buildStatus": "npm run build PASSES | tsc --noEmit PASSES | next lint PASSES (Phase 4 complete)"
+  },
+  "phase4Summary": {
+    "newModels": ["Medication", "MarEntry", "MarDiscrepancy", "FamilyContact", "FamilyPushSubscription", "ApiKey", "AiUsageLog", "Webhook"],
+    "newEnums": ["MarOutcome"],
+    "keyFiles": {
+      "aiSuggestions": ["app/api/ai/suggest/route.ts", "hooks/useAISuggestion.ts", "components/care/GuidedNoteField.tsx"],
+      "mar": ["app/(app)/visit/[visitId]/medications/page.tsx", "app/api/visits/[visitId]/mar/route.ts", "lib/mar/discrepancy-check.ts"],
+      "medications": ["app/(app)/manager/clients/[clientId]/medications/page.tsx", "app/api/manager/clients/[clientId]/medications/route.ts"],
+      "familyPortal": ["app/(portal)/portal/", "app/api/portal/", "lib/push/send.ts", "lib/push/notify-family.ts"],
+      "billing": ["lib/billing/plans.ts", "lib/billing/gate.ts", "app/api/billing/webhook/route.ts", "app/(app)/admin/billing/page.tsx"],
+      "publicApi": ["app/api/v1/", "lib/api-keys.ts", "lib/api-keys/authenticate.ts", "lib/webhooks/deliver.ts"],
+      "apiKeyUI": ["app/(app)/admin/api-keys/page.tsx"],
+      "costTracking": ["lib/ai/cost-tracker.ts"],
+      "performance": ["lib/cache/redis.ts", "app/error.tsx", "app/not-found.tsx", "app/docs/api/page.tsx"]
+    }
   }
 }

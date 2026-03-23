@@ -4,6 +4,68 @@ Newest entries at top.
 
 ---
 
+## [2026-03-23] — Phase 4: AI Sophistication & SaaS Scale — COMPLETE
+**Status:** ✅ Complete — `npm run build` ✅ | `tsc --noEmit` ✅ | `next lint` ✅
+**Chunks:** 20 chunks (C1–C20)
+
+### Summary of all Phase 4 changes
+
+**Schema additions:**
+- `Agency`: stripeCustomerId, subscriptionStatus, subscriptionId, planUpdatedAt
+- `Client`: portalSlug (unique)
+- `Visit`: marEntries relation, composite index [agencyId, status, createdAt]
+- `Report`: familySummary, composite index [agencyId, createdAt]
+- New models: `Medication`, `MarEntry`, `MarDiscrepancy`, `FamilyContact`, `FamilyPushSubscription`, `ApiKey`, `AiUsageLog`, `Webhook`
+- New enum: `MarOutcome` (ADMINISTERED | PROMPTED | REFUSED | MISSED | NOT_DUE | STOCK_OUT)
+
+**Real-time AI Suggestions (C1–C2):**
+- `POST /api/ai/suggest` — Claude Haiku, 150 max_tokens, Upstash Redis rate limit (30/hr)
+- `hooks/useAISuggestion.ts` — 800ms debounce, 15-char min, max 3 calls per field
+- `GuidedNoteField` extended with Framer Motion suggestion card, dismiss/accept
+
+**MAR Module (C3–C7):**
+- `Medication` management page — manager can add/edit/deactivate per client
+- MAR step injected into visit workflow between tasks and notes
+- Pill-style outcome chips — hard block until all outcomes selected
+- `lib/mar/discrepancy-check.ts` — stock plausibility, consecutive refusals, consecutive misses
+- `POST /api/visits/[visitId]/mar` — idempotent deleteMany + createMany
+- MAR table included in inspection pack PDF (C7)
+- `GET /api/manager/reports/[reportId]/mar` — MAR detail for manager report view
+
+**Family Portal (C8–C12):**
+- `FamilyContact` management — manager UI with consent chips, push prefs, portal link copy
+- `app/(portal)/` route group — portal login, consent page, visit list, visit detail
+- Token auth: base64(contactId), gates on `consentGiven: true`
+- Web Push (VAPID) — `lib/push/send.ts`, `lib/push/notify-family.ts`, push subscribe/unsubscribe routes
+- `POST /api/portal/generate-family-summary` — 2-sentence Claude Haiku family summary
+
+**SaaS Infrastructure (C13–C15):**
+- `lib/billing/plans.ts` — STARTER/GROWTH/ENTERPRISE plan definitions with limits
+- `lib/billing/gate.ts` — `checkFeatureGate()` throws PlanLimitError for blocked features
+- `POST /api/billing/webhook` — Stripe signature verification, subscription lifecycle
+- Billing admin page at `/admin/billing`
+- White-label: CSS custom properties (`--brand-primary`), Enterprise-only logo injection
+
+**Public API (C16–C17):**
+- `lib/api-keys.ts` — key generation (`cda_{code}_{random}`), bcrypt hash/verify
+- `lib/api-keys/authenticate.ts` — Bearer token auth middleware
+- `/api/v1/` routes: clients (read/write), reports (read), webhooks (register/delete)
+- `lib/webhooks/deliver.ts` — HMAC-SHA256 signed, 3 retries with exponential backoff
+- API key management UI at `/admin/api-keys`
+
+**AI Cost Tracking (C19):**
+- `lib/ai/cost-tracker.ts` — `logAiCall()`, per-model pricing, monthly usage query
+- `AiUsageLog` written on every AI call
+
+**Performance & Polish (C20):**
+- `app/error.tsx`, `app/global-error.tsx`, `app/(app)/error.tsx` — error boundaries
+- `app/not-found.tsx` — 404 page
+- Loading skeletons: dashboard, reports list, client list
+- `lib/cache/redis.ts` — `cacheGet/cacheSet/cacheDel/cacheDelPattern` + `CacheKeys` builder
+- `app/docs/api/page.tsx` — public API documentation page (no auth, force-static)
+
+---
+
 ## [2026-03-23] — Phase 3: Compliance Reporting & Manager Dashboard — COMPLETE
 **Status:** ✅ Complete — `npm run build` ✅ | `tsc --noEmit` ✅ | `next lint` ✅
 **Chunks:** 20 chunks (1-20)

@@ -23,24 +23,28 @@ export default function NotesPage({ params }: NotesPageProps) {
       label: 'What care did you provide today?',
       placeholder: 'e.g. Helped Margaret with her morning wash and got her dressed. Prepared porridge for breakfast...',
       key: 'care' as const,
+      fieldKey: 'care' as const,
     },
     {
       id: 'condition',
       label: 'Did you notice any changes in their condition?',
       placeholder: 'e.g. Arthur seemed more breathless than usual. Oxygen levels checked...',
       key: 'condition' as const,
+      fieldKey: 'condition' as const,
     },
     {
       id: 'incident',
       label: 'Were there any incidents, concerns, or refusals?',
       placeholder: 'e.g. Doris refused her morning medication. No falls. No injuries...',
       key: 'incident' as const,
+      fieldKey: 'incident' as const,
     },
     {
       id: 'response',
       label: 'How did the client respond to the visit?',
       placeholder: 'e.g. Margaret was in good spirits and enjoyed our chat. Ate well...',
       key: 'response' as const,
+      fieldKey: 'response' as const,
     },
   ]
 
@@ -90,6 +94,9 @@ export default function NotesPage({ params }: NotesPageProps) {
             placeholder={f.placeholder}
             value={freeNotes[f.key]}
             onChange={(v) => setFreeNote(f.key, v)}
+            fieldKey={f.fieldKey}
+            clientContext={{ name: clientName ?? '', conditions: [] }}
+            enableSuggestions={true}
           />
         ))}
 
@@ -104,7 +111,7 @@ export default function NotesPage({ params }: NotesPageProps) {
         <div className="flex gap-3">
           <Button
             variant="secondary"
-            onClick={() => { setStep('tasks'); router.push(`/visit/${params.visitId}/tasks`) }}
+            onClick={() => { setStep('medications'); router.push(`/visit/${params.visitId}/medications`) }}
             icon={<ArrowLeft className="h-4 w-4" />}
           >
             Back

@@ -49,8 +49,8 @@ export default function TasksPage({ params }: TasksPageProps) {
         body: JSON.stringify({ tasks: completedTasks }),
       })
       if (!res.ok) throw new Error('Failed to save tasks')
-      setStep('notes')
-      router.push(`/visit/${params.visitId}/notes`)
+      setStep('medications')
+      router.push(`/visit/${params.visitId}/medications`)
     } finally {
       setSaving(false)
     }
@@ -89,7 +89,7 @@ export default function TasksPage({ params }: TasksPageProps) {
           <span className="font-semibold text-slate-deep">{completedTasks.length}</span> tasks recorded
         </span>
         <Button onClick={handleContinue} loading={saving} icon={<ArrowRight className="h-4 w-4" />}>
-          Continue to Notes
+          Continue to Medications
         </Button>
       </div>
     </div>

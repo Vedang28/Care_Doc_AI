@@ -40,7 +40,7 @@ interface VisitState {
   checkInTime: Date | null
 
   // Progress
-  currentStep: 'select' | 'tasks' | 'notes' | 'processing' | 'review' | 'saved'
+  currentStep: 'select' | 'tasks' | 'medications' | 'notes' | 'processing' | 'review' | 'saved'
 
   // Data
   completedTasks: CompletedTask[]

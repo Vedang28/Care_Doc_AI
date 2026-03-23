@@ -52,7 +52,7 @@ export async function POST(
   }
 
   // Fetch all data in parallel
-  const [visits, auditLogs, agency] = await Promise.all([
+  const [visits, auditLogs, agency, marEntries] = await Promise.all([
     db.visit.findMany({
       where: {
         clientId: params.clientId,
@@ -86,6 +86,19 @@ export async function POST(
     db.agency.findUnique({
       where: { id: userOrError.agencyId },
       select: { name: true },
+    }),
+    db.marEntry.findMany({
+      where: {
+        agencyId: userOrError.agencyId,
+        visit: {
+          clientId: params.clientId,
+          checkInAt: { gte: dateFrom, lte: dateTo },
+        },
+      },
+      include: {
+        medication: { select: { name: true, dose: true, route: true, frequency: true } },
+      },
+      orderBy: { createdAt: 'asc' },
     }),
   ])
 
@@ -172,6 +185,7 @@ export async function POST(
       userName: options.anonymiseCaregivers ? null : (l.user?.name ?? null),
     })),
     options,
+    marEntries,
   })
 
   // Try Cloudflare Worker PDF generation

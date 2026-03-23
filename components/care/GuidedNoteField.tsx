@@ -1,10 +1,12 @@
 'use client'
 
 import { useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useVoiceInput } from '@/hooks/useVoiceInput'
-import { Mic, MicOff, Loader2 } from 'lucide-react'
+import { useAISuggestion } from '@/hooks/useAISuggestion'
+import { Mic, MicOff, Loader2, Sparkles, X, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface GuidedNoteFieldProps {
@@ -13,9 +15,22 @@ interface GuidedNoteFieldProps {
   placeholder: string
   value: string
   onChange: (value: string) => void
+  // AI suggestion props
+  fieldKey?: 'care' | 'condition' | 'incident' | 'response'
+  clientContext?: { name: string; conditions: string[] }
+  enableSuggestions?: boolean
 }
 
-export function GuidedNoteField({ id, label, placeholder, value, onChange }: GuidedNoteFieldProps) {
+export function GuidedNoteField({
+  id,
+  label,
+  placeholder,
+  value,
+  onChange,
+  fieldKey,
+  clientContext,
+  enableSuggestions,
+}: GuidedNoteFieldProps) {
   const handleTranscript = useCallback(
     (transcript: string) => {
       onChange(value ? `${value} ${transcript}` : transcript)
@@ -24,6 +39,21 @@ export function GuidedNoteField({ id, label, placeholder, value, onChange }: Gui
   )
 
   const { state, isSupported, start, stop } = useVoiceInput(handleTranscript)
+
+  const handleAccept = useCallback(
+    (s: string) => onChange(value ? `${value}\n${s}` : s),
+    [value, onChange]
+  )
+
+  const { suggestion, isLoading, dismiss, accept } = useAISuggestion(
+    fieldKey ?? 'care',
+    value,
+    clientContext ?? { name: '', conditions: [] },
+    handleAccept,
+    enableSuggestions === true && !!fieldKey,
+  )
+
+  const showSuggestionWidget = enableSuggestions === true && !!fieldKey
 
   return (
     <div className="space-y-1.5">
@@ -77,6 +107,53 @@ export function GuidedNoteField({ id, label, placeholder, value, onChange }: Gui
           state === 'listening' && 'border-red-300 focus-visible:border-red-400'
         )}
       />
+
+      {/* AI Suggestion widget */}
+      <AnimatePresence>
+        {showSuggestionWidget && (isLoading || suggestion) && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="rounded-lg bg-care-pale border border-care-light p-3 mt-1"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-care-dark">
+                <Sparkles className="h-3.5 w-3.5 text-care" />
+                AI Suggestion
+              </div>
+              {suggestion && (
+                <button
+                  type="button"
+                  onClick={dismiss}
+                  className="text-slate-mid hover:text-slate-deep p-0.5"
+                  aria-label="Dismiss suggestion"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            {isLoading && !suggestion ? (
+              <div className="flex items-center gap-2 mt-1.5">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-care" />
+                <span className="text-xs text-slate-mid">Thinking...</span>
+              </div>
+            ) : suggestion ? (
+              <>
+                <p className="text-sm text-slate-deep mt-1.5 leading-relaxed">{suggestion}</p>
+                <button
+                  type="button"
+                  onClick={accept}
+                  className="mt-2 flex items-center gap-1 text-xs font-medium text-care hover:text-care-dark transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add to notes
+                </button>
+              </>
+            ) : null}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

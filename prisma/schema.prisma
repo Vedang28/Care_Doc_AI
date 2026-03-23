@@ -13,10 +13,14 @@ model Agency {
   code      String   @unique
   subdomain String?  @unique
   logoUrl   String?
-  plan      String   @default("starter")
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  plan                 String    @default("starter")
+  stripeCustomerId     String?
+  subscriptionStatus   String    @default("inactive")
+  subscriptionId       String?
+  planUpdatedAt        DateTime?
+  active               Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   users           User[]
   clients         Client[]
@@ -28,6 +32,10 @@ model Agency {
   settings        AgencySettings?
   rotaAssignments RotaAssignment[]
   incidents       Incident[]
+  medications     Medication[]
+  apiKeys         ApiKey[]
+  aiUsageLogs     AiUsageLog[]
+  webhooks        Webhook[]
 }
 
 model User {
@@ -48,6 +56,7 @@ model User {
   rotaAssignments    RotaAssignment[]
   notifications      Notification[]
   caregiverIncidents Incident[]       @relation("IncidentCaregiver")
+  marEntries         MarEntry[]
 
   @@index([agencyId])
 }
@@ -77,6 +86,10 @@ model Client {
   visits          Visit[]
   rotaAssignments RotaAssignment[]
   incidents       Incident[]
+  medications     Medication[]
+  familyContacts  FamilyContact[]
+
+  portalSlug  String?  @unique
 
   @@index([agencyId])
 }
@@ -97,6 +110,7 @@ model RotaAssignment {
 
   @@index([caregiverId, scheduledDate])
   @@index([agencyId])
+  @@index([clientId, scheduledDate])
 }
 
 model Visit {
@@ -120,9 +134,11 @@ model Visit {
   tasks     VisitTask[]
   notes     VisitNotes?
   report    Report?
+  marEntries MarEntry[]
 
   @@index([agencyId, clientId])
   @@index([caregiverId])
+  @@index([agencyId, status, createdAt])
 }
 
 enum VisitStatus {
@@ -174,6 +190,7 @@ model Report {
   qualitySpecificity   Int?
   qualityRiskAwareness Int?
   qualityFeedback      String?
+  familySummary        String?
 
   visit     Visit      @relation(fields: [visitId], references: [id])
   agency    Agency     @relation(fields: [agencyId], references: [id])
@@ -181,6 +198,7 @@ model Report {
   incidents Incident[]
 
   @@index([agencyId])
+  @@index([agencyId, createdAt])
 }
 
 enum ReportStatus {
@@ -296,4 +314,157 @@ enum IncidentSeverity {
   MEDIUM
   HIGH
   CRITICAL
+}
+
+model Medication {
+  id           String    @id @default(uuid())
+  clientId     String
+  agencyId     String
+  name         String
+  dose         String
+  frequency    String
+  route        String    // oral | topical | inhaled | injection | other
+  prescribedBy String?
+  startDate    DateTime  @db.Date
+  endDate      DateTime? @db.Date
+  active       Boolean   @default(true)
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  client     Client     @relation(fields: [clientId], references: [id])
+  agency     Agency     @relation(fields: [agencyId], references: [id])
+  marEntries MarEntry[]
+
+  @@index([clientId, active])
+  @@index([agencyId])
+}
+
+model MarEntry {
+  id             String     @id @default(uuid())
+  medicationId   String
+  visitId        String
+  caregiverId    String
+  agencyId       String
+  scheduledTime  String?
+  outcome        MarOutcome
+  administeredAt DateTime?
+  refusalReason  String?
+  missedReason   String?
+  notes          String?
+  witnessedBy    String?
+  stockBefore    Int?
+  stockAfter     Int?
+  createdAt      DateTime   @default(now())
+
+  medication Medication @relation(fields: [medicationId], references: [id])
+  visit      Visit      @relation(fields: [visitId], references: [id])
+  caregiver  User       @relation(fields: [caregiverId], references: [id])
+
+  @@index([medicationId, createdAt])
+  @@index([visitId])
+  @@index([agencyId])
+}
+
+model MarDiscrepancy {
+  id           String    @id @default(uuid())
+  medicationId String
+  clientId     String
+  agencyId     String
+  type         String
+  description  String
+  resolvedAt   DateTime?
+  resolvedBy   String?
+  createdAt    DateTime  @default(now())
+
+  @@index([clientId, agencyId])
+}
+
+enum MarOutcome {
+  ADMINISTERED
+  PROMPTED
+  REFUSED
+  MISSED
+  NOT_DUE
+  STOCK_OUT
+}
+
+model ApiKey {
+  id         String    @id @default(uuid())
+  agencyId   String
+  name       String
+  keyHash    String    @unique
+  keyPrefix  String
+  scopes     String[]
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  active     Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+
+  agency Agency @relation(fields: [agencyId], references: [id])
+
+  @@index([agencyId, active])
+}
+
+model FamilyContact {
+  id            String    @id @default(uuid())
+  clientId      String
+  agencyId      String
+  name          String
+  email         String
+  relationship  String
+  consentGiven  Boolean   @default(false)
+  consentDate   DateTime?
+  notifyOnVisit Boolean   @default(false)
+  notifyOnFlag  Boolean   @default(true)
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  client            Client                 @relation(fields: [clientId], references: [id])
+  pushSubscriptions FamilyPushSubscription[]
+
+  @@unique([clientId, email])
+  @@index([agencyId])
+}
+
+model FamilyPushSubscription {
+  id              String   @id @default(uuid())
+  familyContactId String
+  endpoint        String   @unique
+  p256dhKey       String
+  authKey         String
+  userAgent       String?
+  createdAt       DateTime @default(now())
+
+  familyContact FamilyContact @relation(fields: [familyContactId], references: [id])
+
+  @@index([familyContactId])
+}
+
+model Webhook {
+  id        String   @id @default(uuid())
+  agencyId  String
+  url       String
+  secret    String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  agency Agency @relation(fields: [agencyId], references: [id])
+
+  @@index([agencyId])
+}
+
+model AiUsageLog {
+  id           String   @id @default(uuid())
+  agencyId     String
+  model        String
+  inputTokens  Int
+  outputTokens Int
+  endpoint     String
+  latencyMs    Int
+  createdAt    DateTime @default(now())
+
+  agency Agency @relation(fields: [agencyId], references: [id])
+
+  @@index([agencyId, createdAt])
 }

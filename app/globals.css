@@ -7,6 +7,9 @@
     --radius: 0.5rem;
     --background: 248 250 252;
     --foreground: 30 41 59;
+    --brand-primary: #2D6A4F;
+    --brand-primary-dark: #1A4332;
+    --brand-primary-light: #D8F3DC;
   }
 
   * {

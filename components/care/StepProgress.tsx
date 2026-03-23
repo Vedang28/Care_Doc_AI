@@ -4,17 +4,18 @@ import { cn } from '@/lib/utils'
 import { Check } from 'lucide-react'
 
 const STEPS = [
-  { id: 'select',     label: 'Select Client' },
-  { id: 'tasks',      label: 'Tasks' },
-  { id: 'notes',      label: 'Notes' },
-  { id: 'processing', label: 'Processing' },
-  { id: 'review',     label: 'Review' },
-  { id: 'saved',      label: 'Done' },
+  { id: 'select',      label: 'Select Client' },
+  { id: 'tasks',       label: 'Tasks' },
+  { id: 'medications', label: 'Medications' },
+  { id: 'notes',       label: 'Notes' },
+  { id: 'processing',  label: 'Processing' },
+  { id: 'review',      label: 'Review' },
+  { id: 'saved',       label: 'Done' },
 ] as const
 
 type Step = (typeof STEPS)[number]['id']
 
-const STEP_ORDER: Step[] = ['select', 'tasks', 'notes', 'processing', 'review', 'saved']
+const STEP_ORDER: Step[] = ['select', 'tasks', 'medications', 'notes', 'processing', 'review', 'saved']
 
 interface StepProgressProps {
   currentStep: Step

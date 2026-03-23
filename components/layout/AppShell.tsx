@@ -10,9 +10,10 @@ interface AppShellProps {
   children: ReactNode
   userName?: string
   role?: string
+  agencyLogo?: string
 }
 
-export function AppShell({ children, userName, role }: AppShellProps) {
+export function AppShell({ children, userName, role, agencyLogo }: AppShellProps) {
   const isManager = role === 'MANAGER' || role === 'ADMIN' || role === 'SENIOR_CARER'
 
   return (
@@ -21,10 +22,17 @@ export function AppShell({ children, userName, role }: AppShellProps) {
       <header className="bg-white border-b border-border-light sticky top-0 z-20">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <HeartPulse className="h-5 w-5 text-care" />
-            <span className="font-display font-bold text-care-dark">
-              CareDoc<span className="text-care">AI</span>
-            </span>
+            {agencyLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={agencyLogo} alt="Agency logo" className="h-8" />
+            ) : (
+              <>
+                <HeartPulse className="h-5 w-5 text-care" />
+                <span className="font-display font-bold text-care-dark">
+                  CareDoc<span className="text-care">AI</span>
+                </span>
+              </>
+            )}
             {isManager && (
               <span className="ml-2 text-xs text-slate-mid bg-surface border border-border-light rounded px-1.5 py-0.5">
                 Manager
@@ -53,6 +61,11 @@ export function AppShell({ children, userName, role }: AppShellProps) {
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6">
         {children}
       </main>
+
+      {/* Powered by footer — always visible, cannot be removed */}
+      <div className="px-4 py-3 border-t border-border-light mt-auto">
+        <p className="text-[10px] text-slate-mid/60 text-center">Powered by CareDoc AI</p>
+      </div>
     </div>
   )
 }

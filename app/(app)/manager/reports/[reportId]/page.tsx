@@ -12,6 +12,32 @@ import { formatDate, formatTime, formatDuration } from '@/lib/utils'
 import type { ReportDetail } from '@/types'
 import { ArrowLeft, CheckCircle2, Download, Loader2 } from 'lucide-react'
 
+type MarOutcome = 'ADMINISTERED' | 'PROMPTED' | 'REFUSED' | 'MISSED' | 'NOT_DUE' | 'STOCK_OUT'
+
+interface MarEntry {
+  id: string
+  outcome: MarOutcome
+  administeredAt: string | null
+  refusalReason: string | null
+  missedReason: string | null
+  notes: string | null
+  medication: {
+    name: string
+    dose: string
+    route: string
+    frequency: string
+  }
+}
+
+const OUTCOME_CONFIG: Record<MarOutcome, { label: string; icon: string; className: string }> = {
+  ADMINISTERED: { label: 'Administered', icon: '✅', className: 'text-green-700 bg-green-50 border-green-200' },
+  PROMPTED:     { label: 'Prompted',     icon: '🔵', className: 'text-blue-700 bg-blue-50 border-blue-200' },
+  REFUSED:      { label: 'Refused',      icon: '⚠️', className: 'text-amber-700 bg-amber-50 border-amber-200' },
+  MISSED:       { label: 'Missed',       icon: '❌', className: 'text-red-700 bg-red-50 border-red-200' },
+  NOT_DUE:      { label: 'Not Due',      icon: '—',  className: 'text-slate-500 bg-slate-50 border-slate-200' },
+  STOCK_OUT:    { label: 'Stock Out',    icon: '📦', className: 'text-orange-700 bg-orange-50 border-orange-200' },
+}
+
 interface ReportDetailPageProps {
   params: { reportId: string }
 }
@@ -23,6 +49,8 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const [exportingPdf, setExportingPdf] = useState(false)
   const [slideOverOpen, setSlideOverOpen] = useState(false)
   const [slideOverFlag, setSlideOverFlag] = useState('')
+  const [marEntries, setMarEntries] = useState<MarEntry[]>([])
+  const [marLoading, setMarLoading] = useState(true)
 
   async function handleExportPdf() {
     if (!report) return
@@ -57,6 +85,15 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
       .then(setReport)
       .catch(() => setError(true))
       .finally(() => setLoading(false))
+
+    fetch(`/api/manager/reports/${params.reportId}/mar`)
+      .then(async (r) => {
+        if (!r.ok) return { marEntries: [] }
+        return r.json()
+      })
+      .then((data: { marEntries: MarEntry[] }) => setMarEntries(data.marEntries ?? []))
+      .catch(() => setMarEntries([]))
+      .finally(() => setMarLoading(false))
   }, [params.reportId])
 
   if (loading) {
@@ -187,6 +224,58 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Medications — MAR Record */}
+      <div className="bg-white border border-border-soft rounded-xl p-4">
+        <p className="text-xs font-semibold text-slate-mid uppercase tracking-wide mb-3">Medications — MAR Record</p>
+        {marLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+        ) : marEntries.length === 0 ? (
+          <p className="text-sm text-slate-mid italic">No medications recorded for this visit.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-border-light">
+                  <th className="text-left text-[11px] font-semibold text-slate-mid uppercase tracking-wide py-2 pr-4">Medication</th>
+                  <th className="text-left text-[11px] font-semibold text-slate-mid uppercase tracking-wide py-2 pr-4">Outcome</th>
+                  <th className="text-left text-[11px] font-semibold text-slate-mid uppercase tracking-wide py-2 pr-4">Time</th>
+                  <th className="text-left text-[11px] font-semibold text-slate-mid uppercase tracking-wide py-2">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {marEntries.map((entry) => {
+                  const cfg = OUTCOME_CONFIG[entry.outcome]
+                  const noteText = entry.refusalReason ?? entry.missedReason ?? entry.notes ?? ''
+                  return (
+                    <tr key={entry.id} className="border-b border-border-light last:border-0">
+                      <td className="py-2 pr-4 font-medium text-slate-deep">
+                        {entry.medication.name}
+                        {entry.medication.dose && (
+                          <span className="ml-1 text-slate-mid font-normal">{entry.medication.dose}</span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-4">
+                        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${cfg.className}`}>
+                          <span>{cfg.icon}</span>
+                          <span>{cfg.label}</span>
+                        </span>
+                      </td>
+                      <td className="py-2 pr-4 text-slate-mid">
+                        {entry.administeredAt ? formatTime(entry.administeredAt) : '—'}
+                      </td>
+                      <td className="py-2 text-slate-mid">{noteText || '—'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Signature */}
