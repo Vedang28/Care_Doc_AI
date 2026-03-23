@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, isNextResponse, errorResponse, getClientIp } from '@/lib/api-helpers'
 import { submitReportSchema } from '@/lib/validations/visit'
+import { notifyManagersOfFlaggedReport } from '@/lib/notifications'
 
 export async function POST(
   request: NextRequest,
@@ -73,6 +74,29 @@ export async function POST(
         after: { submittedAt: submittedAt.toISOString() },
       },
     })
+
+    // Fire-and-forget: notify managers if report has flags
+    if (visit.report.flags.length > 0) {
+      const [fullVisit] = await Promise.all([
+        db.visit.findUnique({
+          where: { id: visitId },
+          include: {
+            client: { select: { name: true } },
+            caregiver: { select: { name: true } },
+          },
+        }),
+      ])
+      if (fullVisit) {
+        notifyManagersOfFlaggedReport({
+          agencyId: userOrError.agencyId,
+          reportId: visit.report.id,
+          clientName: fullVisit.client.name,
+          caregiverName: fullVisit.caregiver.name,
+          flags: visit.report.flags,
+          visitDate: fullVisit.checkInAt,
+        }).catch(console.error)
+      }
+    }
 
     return NextResponse.json({
       reportId: visit.report.id,

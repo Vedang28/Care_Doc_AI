@@ -18,7 +18,6 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState('')
 
   useEffect(() => {
-    // Get user name from session cookie via server
     fetch('/api/auth/session')
       .then((r) => r.json())
       .then((s) => setUserName(s?.user?.name ?? ''))
@@ -34,7 +33,7 @@ export default function DashboardPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  async function handleStartVisit(clientId: string) {
+  async function handleStartVisit(clientId: string, coords?: { lat: number; lng: number }) {
     const res = await fetch('/api/visits', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -43,9 +42,19 @@ export default function DashboardPage() {
 
     if (!res.ok) throw new Error('Failed to start visit')
 
-    const { visitId } = await res.json()
+    const { visitId } = await res.json() as { visitId: string }
     const client = clients.find((c) => c.id === clientId)!
     startVisit(visitId, clientId, client.name)
+
+    // Verify GPS in background — non-blocking
+    if (coords) {
+      fetch(`/api/visits/${visitId}/verify-location`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat: coords.lat, lng: coords.lng }),
+      }).catch(() => {})
+    }
+
     router.push(`/visit/${visitId}/tasks`)
   }
 
@@ -81,7 +90,7 @@ export default function DashboardPage() {
               <Users className="h-8 w-8 text-care" />
             </div>
             <div>
-              <p className="font-semibold text-slate-deep">No clients assigned to you today.</p>
+              <p className="font-semibold text-slate-deep">No visits scheduled for today.</p>
               <p className="text-slate-mid text-sm mt-1">
                 Contact your manager if you believe this is incorrect.
               </p>

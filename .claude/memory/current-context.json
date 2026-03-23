@@ -1,0 +1,101 @@
+{
+  "version": 2,
+  "updatedAt": "2026-03-21T22:00:48.442Z",
+  "claudeRoot": "/Users/adityatiwari/Desktop/Development/Claude skill",
+  "resumeBrief": {
+    "instruction": "Use this file as the source of truth for session restore. Only open the listed files first.",
+    "currentState": "Preparing commit and push to GitHub",
+    "nextAction": "Review git diff, commit the claude-forge upgrade, and push main",
+    "blockers": [],
+    "openFirst": [
+      "memory/current-context.json",
+      "PRIORITY-WORK.md",
+      "scripts/session-memory.js",
+      "scripts/task-orchestrator.js",
+      "scripts/project-scan.js"
+    ],
+    "suggestedFiles": [
+      "scripts/session-memory.js",
+      "scripts/task-orchestrator.js",
+      "scripts/project-scan.js",
+      "README.md"
+    ],
+    "commandsToReuse": [
+      "node scripts/task-orchestrator.js --task \"upgrade claude-forge\" --needs-backend --needs-testing --context-usage 61",
+      "node scripts/session-guard.js --context-usage 96 --auto-close --summary \"...\" --in-progress \"...\" --next \"...\""
+    ],
+    "avoidReading": [
+      "Read memory/current-context.json first.",
+      "Do not scan the full repo unless the brief is missing something critical.",
+      "Do not open memory/decisions.md, memory/patterns.md, or memory/errors.md unless the current task needs them."
+    ],
+    "checkpointPolicy": {
+      "warnAtPercent": 70,
+      "saveAtPercent": 85,
+      "closeAtPercent": 95,
+      "closeAction": "If usage reaches the stop threshold, save and resume in a fresh session."
+    }
+  },
+  "session": {
+    "label": "focus-session",
+    "reason": "manual-save",
+    "completed": [
+      "Upgraded memory system and added orchestration tooling"
+    ],
+    "inProgress": [
+      "Preparing commit and push to GitHub"
+    ],
+    "nextSteps": [
+      "Review git diff, commit the claude-forge upgrade, and push main"
+    ],
+    "blockers": [],
+    "mustRemember": [
+      "PRIORITY-WORK now syncs automatically from session saves",
+      "decisions.md auto-appends fresh decisions from structured saves",
+      "orchestrate + project-scan are now first-class workflow tools"
+    ],
+    "recentDecisions": [
+      "Added project-scan and task-orchestrator JavaScript helpers",
+      "Structured session saves now sync PRIORITY-WORK and append decisions automatically"
+    ],
+    "openQuestions": [],
+    "importantCommands": [
+      "node scripts/task-orchestrator.js --task \"upgrade claude-forge\" --needs-backend --needs-testing --context-usage 61",
+      "node scripts/session-guard.js --context-usage 96 --auto-close --summary \"...\" --in-progress \"...\" --next \"...\""
+    ],
+    "contextWindow": {
+      "usagePercent": 61,
+      "remainingPercent": 39,
+      "thresholds": {
+        "warn": 70,
+        "save": 85,
+        "close": 95
+      },
+      "pressure": "normal",
+      "recommendedAction": "continue",
+      "closeRecommended": false,
+      "policy": "Warn at 70% used, checkpoint at 85% used, stop at 95% used."
+    }
+  },
+  "projectSnapshot": {
+    "priorityFiles": [
+      "memory/current-context.json",
+      "PRIORITY-WORK.md",
+      "scripts/session-memory.js",
+      "scripts/task-orchestrator.js",
+      "scripts/project-scan.js"
+    ],
+    "recentMemoryFiles": [
+      "memory/INDEX.md",
+      "memory/session-log.md",
+      "memory/project-brain.md",
+      "PRIORITY-WORK.md"
+    ],
+    "recentWorkspaceFiles": [
+      "scripts/session-memory.js",
+      "scripts/task-orchestrator.js",
+      "scripts/project-scan.js",
+      "README.md"
+    ]
+  }
+}

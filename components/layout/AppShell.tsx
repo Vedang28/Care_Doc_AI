@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
+import { NotificationBell } from '@/components/layout/NotificationBell'
 import { LogOut, HeartPulse } from 'lucide-react'
 
 interface AppShellProps {
@@ -12,7 +13,7 @@ interface AppShellProps {
 }
 
 export function AppShell({ children, userName, role }: AppShellProps) {
-  const isManager = role === 'MANAGER' || role === 'ADMIN'
+  const isManager = role === 'MANAGER' || role === 'ADMIN' || role === 'SENIOR_CARER'
 
   return (
     <div className="min-h-screen bg-surface flex flex-col">
@@ -31,9 +32,10 @@ export function AppShell({ children, userName, role }: AppShellProps) {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
+            {isManager && <NotificationBell />}
             {userName && (
-              <span className="text-sm text-slate-mid hidden sm:block">{userName}</span>
+              <span className="text-sm text-slate-mid hidden sm:block mx-2">{userName}</span>
             )}
             <Button
               variant="ghost"

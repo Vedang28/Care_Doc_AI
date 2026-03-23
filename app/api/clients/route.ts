@@ -18,6 +18,7 @@ export async function GET() {
         caregiverId: userOrError.id,
         scheduledDate: { gte: today, lt: tomorrow },
         status: 'scheduled',
+        client: { agencyId: userOrError.agencyId },
       },
       include: {
         client: {

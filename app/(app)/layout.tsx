@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { AppShell } from '@/components/layout/AppShell'
+import { OfflineBanner } from '@/components/care/OfflineBanner'
 import type { SessionUser } from '@/types'
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
@@ -12,6 +13,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <AppShell userName={user.name} role={user.role}>
+      <OfflineBanner />
       {children}
     </AppShell>
   )

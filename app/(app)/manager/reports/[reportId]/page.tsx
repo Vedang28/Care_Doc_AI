@@ -9,7 +9,7 @@ import { FlagAlert } from '@/components/care/FlagAlert'
 import { TransformationBox } from '@/components/care/TransformationBox'
 import { formatDate, formatTime, formatDuration } from '@/lib/utils'
 import type { ReportDetail } from '@/types'
-import { ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Download, Loader2 } from 'lucide-react'
 
 interface ReportDetailPageProps {
   params: { reportId: string }
@@ -19,6 +19,31 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const [report, setReport] = useState<ReportDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [exportingPdf, setExportingPdf] = useState(false)
+
+  async function handleExportPdf() {
+    if (!report) return
+    setExportingPdf(true)
+    try {
+      const res = await fetch(`/api/reports/${params.reportId}/export-pdf`, { method: 'POST' })
+      const data = await res.json() as { url?: string; html?: string; mode: string }
+      if (data.mode === 'pdf' && data.url) {
+        window.open(data.url, '_blank')
+      } else if (data.mode === 'html' && data.html) {
+        // Fallback: open print dialog
+        const win = window.open('', '_blank')
+        if (win) {
+          win.document.write(data.html)
+          win.document.close()
+          win.print()
+        }
+      }
+    } catch {
+      // Fail silently
+    } finally {
+      setExportingPdf(false)
+    }
+  }
 
   useEffect(() => {
     fetch(`/api/manager/reports/${params.reportId}`)
@@ -70,9 +95,19 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
           <h1 className="font-display text-xl font-bold text-care-dark">{report.client.name}</h1>
           <p className="text-slate-mid text-sm">{formatDate(report.visit.checkInAt)} · {report.caregiver.name}</p>
         </div>
-        <Badge variant={report.status === 'APPROVED' ? 'success' : report.status === 'FLAGGED' ? 'danger' : 'warning'}>
-          {report.status}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={report.status === 'APPROVED' ? 'success' : report.status === 'FLAGGED' ? 'danger' : 'warning'}>
+            {report.status}
+          </Badge>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleExportPdf}
+            icon={exportingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          >
+            {exportingPdf ? 'Exporting...' : 'Export PDF'}
+          </Button>
+        </div>
       </div>
 
       {/* Flags + Transformations */}

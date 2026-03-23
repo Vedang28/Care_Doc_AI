@@ -1,0 +1,14 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Local Claude Code settings (keep settings.local.json private)
+.claude/settings.local.json
+
+# Runtime artifacts
+node_modules/

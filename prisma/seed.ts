@@ -157,6 +157,7 @@ async function main() {
         data: {
           clientId:      client.id,
           caregiverId:   carer1.id,
+          agencyId:      agency.id,
           scheduledDate: today,
           visitType:     'standard',
           status:        'scheduled',
